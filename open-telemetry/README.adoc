@@ -1,0 +1,85 @@
+= OpenTelemetry ShowCase for Almaraz
+:toc:
+:toclevels: 2
+:imagesdir: ./docs/images
+
+
+== Description
+
+This is a showcase on how to add OpenTelemetry observability solution into Almaraz without changing code.
+
+
+== ShowCase Architecture
+
+The architecture would be as simple as possible for learning porposes. Almaraz example will use
+auto-intrumentation (Java Agent) to automatically recollect telemetry data to be sent to
+OpenTelemetry Collector using default OTLP protocol. All tracing data will be exported to a Jaeger
+Backend but metric data would be exposed as a 'pull-based' exporter 'a la Prometheus'.
+In addition the collector instance itself is another observable application and it will be reporting telemetry
+information too.
+
+Follows detailed information for each architecture's component: 
+
+
+=== Tracing Backend
+
+As a tracing backend, Jaeger is selected.
+
+```
+docker run --rm -p 16686:16686 -p 14250:14250 -p 14268:14268 --name jaeger-all jaegertracing/all-in-one:latest
+```
+
+=== Metrics Backend
+
+Prometheus is going to be the metrics backend. configuration could be read link:./configs/prometheus.yaml[here].
+
+``` 
+docker run --rm --network host --name prometheus -v ${REPO_PATH}/open-telemetry/configs/prometheus.yaml:/etc/prometheus/prometheus.yml  prom/prometheus:latest
+``` 
+
+=== Open-Telemetry Collector
+
+The chosen collector implementation is the Open Telemetry reference implementation. It could be find
+link:https://github.com/open-telemetry/opentelemetry-collector[here]. And the used pipeline
+configuration could be read link:./configs/otel-local-config.yaml[here].
+
+```
+ docker run --rm --network host -v "${REPO_PATH}/open-telemetry/configs/otel-local-config.yaml":/otel-local-config.yaml --name otelcol otel/opentelemetry-collector --config otel-local-config.yaml;
+```
+
+=== Play Almaraz application
+
+We are going to use link:../example[Almaraz Example] as an application for the showcase.
+
+First it is required to use the link:Open-Telemetry Java
+Agent[https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent-all.jar].
+
+Lets go start it using:
+
+```
+cd example
+mvn package
+java -javaagent:<path-to>/opentelemetry-javaagent-all.jar -Dotel.resource.attributes=service.name=almaraz-example -jar ./target/almaraz-example-0.2.7.jar
+```
+
+==== Examples
+
+```
+curl -v -X POST -H 'Content-Type: application/json' -d '{"name": "jorge", "country": "es"}' http://localhost:8080/api/users
+```
+
+Jaeger console:
+
+image:ot-almaraz-example-success.png[]
+
+
+
+```
+curl -v -X POST -H 'Content-Type: application/json' -d '{"name": "jorge", "country": "spain"}' http://localhost:8080/api/users
+```
+
+Jaeger console:
+
+image:ot-almaraz-example-error.png[]
+
+
