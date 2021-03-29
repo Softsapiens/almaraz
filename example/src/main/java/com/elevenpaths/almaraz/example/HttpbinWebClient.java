@@ -6,6 +6,7 @@ package com.elevenpaths.almaraz.example;
 
 import java.util.Map;
 
+import io.opentelemetry.instrumentation.spring.webflux.client.WebClientTracingFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;

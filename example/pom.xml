@@ -18,6 +18,8 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<otel-spring-boot-starters.version>1.0.1-alpha</otel-spring-boot-starters.version>
+		<otel-exporter.version>1.0.1</otel-exporter.version>
+		<spring-boot.run.jvmArguments></spring-boot.run.jvmArguments>
 	</properties>
 
 	<dependencies>
@@ -51,6 +53,12 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-spring-boot-autoconfigure</artifactId>
+			<version>${otel-spring-boot-starters.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry.instrumentation</groupId>
 			<artifactId>opentelemetry-spring-starter</artifactId>
@@ -61,6 +69,21 @@
 			<artifactId>opentelemetry-otlp-exporter-starter</artifactId>
 			<version>${otel-spring-boot-starters.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-spring-webflux-5.0</artifactId>
+			<version>${otel-spring-boot-starters.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-reactor-3.1</artifactId>
+			<version>${otel-spring-boot-starters.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-logging</artifactId>
+			<version>${otel-exporter.version}</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -68,6 +91,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<agent>
+					./open-telemetry/agent/opentelemetry-javaagent-all.jar
+					</agent>
+					<jvmArguments>
+						-Dotel.resource.attributes=service.name=almaraz-example
+						-Dotel.exporter.otlp.endpoint=http://localhost:55680
+						${spring-boot.run.jvmArguments}
+					</jvmArguments>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
