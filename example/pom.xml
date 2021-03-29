@@ -98,6 +98,8 @@
 					<jvmArguments>
 						-Dotel.resource.attributes=service.name=almaraz-example
 						-Dotel.exporter.otlp.endpoint=http://localhost:55680
+						-Dotel.metrics.exporter=otlp
+
 						${spring-boot.run.jvmArguments}
 					</jvmArguments>
 				</configuration>

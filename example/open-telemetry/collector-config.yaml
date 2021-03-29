@@ -3,11 +3,24 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:55680
+  # Collect own metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: [ '0.0.0.0:8888' ]
 
 extensions:
   health_check:
 
+processors:
+  batch:
+
 exporters:
+  logging:
+    logLevel: info
   elastic:
     apm_server_url: "http://apm-server:8200"
   jaeger:
@@ -16,6 +29,11 @@ exporters:
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
     insecure: true
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: almaraz-example
+    const_labels:
+      almaraz: example
 
 service:
   extensions: [health_check]
@@ -23,3 +41,7 @@ service:
     traces:
       receivers: [otlp]
       exporters: [jaeger]
+    metrics:
+      receivers: [otlp, prometheus ]
+      processors: [batch]
+      exporters: [logging, prometheus]
