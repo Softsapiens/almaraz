@@ -1,0 +1,25 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:55680
+
+extensions:
+  health_check:
+
+exporters:
+  elastic:
+    apm_server_url: "http://apm-server:8200"
+  jaeger:
+    endpoint: jaeger-collector:14250
+    insecure: true
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+    insecure: true
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [jaeger]

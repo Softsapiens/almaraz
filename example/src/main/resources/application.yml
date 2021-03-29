@@ -8,7 +8,23 @@ server:
 logging:
   level:
     root: INFO
+    io.opentelemetry: DEBUG
 
 almaraz-example:
   base-path: /api
   httpbin-url: http://httpbin.org
+
+## Default tracer configurations
+opentelemetry:
+  trace:
+    tracer:
+      name: almaraz-example
+      samplerProbability: 1.0
+## Default exporter configurations
+    exporter:
+      otlp:
+        servicename: almaraz-example
+        endpoint: http://localhost:55680
+        spantimeout: 1s
+      logging:
+        enabled: true

@@ -4,6 +4,7 @@
 
 package com.elevenpaths.almaraz.example;
 
+import io.opentelemetry.instrumentation.spring.autoconfigure.EnableOpenTelemetry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 @Configuration
+@EnableOpenTelemetry
 public class ApplicationConfiguration extends AlmarazConfiguration {
 
 	public ApplicationConfiguration(

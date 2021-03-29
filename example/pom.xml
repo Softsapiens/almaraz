@@ -8,6 +8,7 @@
 		<version>2.1.13.RELEASE</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+
 	<groupId>com.elevenpaths.almaraz</groupId>
 	<artifactId>almaraz-example</artifactId>
 	<version>0.2.7</version>
@@ -16,6 +17,7 @@
 
 	<properties>
 		<java.version>1.8</java.version>
+		<otel-spring-boot-starters.version>1.0.1-alpha</otel-spring-boot-starters.version>
 	</properties>
 
 	<dependencies>
@@ -23,7 +25,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>com.elevenpaths.almaraz</groupId>
 			<artifactId>almaraz</artifactId>
@@ -49,6 +50,16 @@
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-spring-starter</artifactId>
+			<version>${otel-spring-boot-starters.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-otlp-exporter-starter</artifactId>
+			<version>${otel-spring-boot-starters.version}</version>
 		</dependency>
 	</dependencies>
 

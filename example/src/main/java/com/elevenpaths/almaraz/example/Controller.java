@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
+import io.opentelemetry.extension.annotations.WithSpan;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,6 +51,7 @@ public class Controller {
 	 * @return
 	 */
 	@PostMapping("/users")
+	@WithSpan()
 	public Mono<ResponseEntity<User>> createUser(@ValidRequestBody("user") User user) {
 		user.setId(UUID.randomUUID().toString());
 		return Mono.just(ResponseEntity.created(URI.create(user.getId())).body(user));
@@ -74,6 +76,7 @@ public class Controller {
 	 * @return
 	 */
 	@PostMapping("/httpbin")
+	@WithSpan("httpbin")
 	public Mono<Map<String, Object>> proxy(@ValidRequestBody("user") User user) {
 		return httpbinWebClient.post(user);
 	}

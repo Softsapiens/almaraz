@@ -1,0 +1,122 @@
+version: '3.0'
+
+services:
+
+  jaeger-collector:
+      image: jaegertracing/jaeger-collector:1.22.0
+      command: ["--es.num-shards=1", "--es.num-replicas=0", "--es.server-urls=http://elasticsearch:9200", "--collector.zipkin.host-port=:9411"]
+      container_name: jaeger-collector
+      hostname: jaeger-collector
+      ports:
+        - "14269"
+        - "14268:14268"
+        - "14250"
+        - "9411:9411"
+      environment:
+        - SPAN_STORAGE_TYPE=elasticsearch
+        - LOG_LEVEL=debug
+      restart: on-failure
+      depends_on:
+        - elasticsearch
+      networks:
+      - almex-net
+
+  jaeger-query:
+    image: jaegertracing/jaeger-query:1.22.0
+    command: ["--es.num-shards=1", "--es.num-replicas=0", "--es.server-urls=http://elasticsearch:9200"]
+    container_name: jaeger-query
+    hostname: jaeger-query
+    ports:
+      - "16686:16686"
+      - "16687"
+    environment:
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - LOG_LEVEL=debug
+    restart: on-failure
+    depends_on:
+      - elasticsearch
+    networks:
+    - almex-net
+
+  jaeger-agent:
+    image: jaegertracing/jaeger-agent:1.22.0
+    command: ["--reporter.grpc.host-port=jaeger-collector:14250", "--reporter.grpc.retry.max=1000"]
+    container_name: jaeger-agent
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+    environment:
+      - LOG_LEVEL=debug
+    restart: on-failure
+    depends_on:
+      - jaeger-collector
+    networks:
+    - almex-net
+
+  collector:
+    image: otel/opentelemetry-collector-contrib-dev:latest
+    container_name: collector
+    hostname: collector
+    command: ["--config=/etc/collector-config.yaml"]
+    volumes:
+      - ./collector-config.yaml:/etc/collector-config.yaml
+    ports:
+      - "13133:13133"
+      - "55680:55680"
+    networks:
+    - almex-net
+    depends_on:
+      jaeger-collector:
+        condition: service_started
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: elasticsearch
+    environment:
+    - bootstrap.memory_lock=true
+    - cluster.name=docker-cluster
+    - cluster.routing.allocation.disk.threshold_enabled=false
+    - discovery.type=single-node
+    - ES_JAVA_OPTS=-XX:UseAVX=2 -Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+    volumes:
+    - esdata:/usr/share/elasticsearch/data
+    ports:
+    - 9200:9200
+    networks:
+    - almex-net
+    healthcheck:
+      interval: 10s
+      retries: 20
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+    - 5601:5601
+    networks:
+    - almex-net
+    healthcheck:
+      interval: 10s
+      retries: 20
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+
+volumes:
+  esdata:
+    driver: local
+
+networks:
+  almex-net:
+    driver: bridge
