@@ -20,6 +20,24 @@ services:
       - almex-net
     restart: always
 
+  grafana:
+    image: grafana/grafana:7.2.2
+    container_name: grafana
+    hostname: grafana
+    user: "472"
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/config.monitoring
+    networks:
+      - almex-net
+    restart: always
+
   jaeger-collector:
       image: jaegertracing/jaeger-collector:1.22.0
       command: ["--es.num-shards=1", "--es.num-replicas=0", "--es.server-urls=http://elasticsearch:9200", "--collector.zipkin.host-port=:9411"]
