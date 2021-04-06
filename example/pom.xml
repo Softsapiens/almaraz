@@ -102,9 +102,9 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<agent>
+					<agents>
 					./open-telemetry/agent/opentelemetry-javaagent-all.jar
-					</agent>
+					</agents>
 					<jvmArguments>
 						-Dotel.resource.attributes=service.name=almaraz-example
 						-Dotel.exporter.otlp.endpoint=http://localhost:55680
