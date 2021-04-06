@@ -3,7 +3,7 @@ version: '3.0'
 services:
 
   prometheus:
-    image: prom/prometheus:v2.25.2
+    image: prom/prometheus:v2.26.0-rc.0
     container_name: prometheus
     hostname: prometheus
     volumes:
@@ -18,10 +18,10 @@ services:
       - 9090:9090
     networks:
       - almex-net
-    restart: always
+    restart: on-failure
 
   grafana:
-    image: grafana/grafana:7.2.2
+    image: grafana/grafana:7.5.1
     container_name: grafana
     hostname: grafana
     user: "472"
@@ -36,7 +36,22 @@ services:
       - ./grafana/config.monitoring
     networks:
       - almex-net
-    restart: always
+    restart: on-failure
+
+  alertmanager:
+    image: prom/alertmanager:v0.21.0
+    container_name: alertmanager
+    hostname: alertmanager
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    networks:
+      - almex-net
+    restart: on-failure
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
 
   jaeger-collector:
       image: jaegertracing/jaeger-collector:1.22.0
@@ -104,6 +119,7 @@ services:
       - "8888:8888"
     networks:
     - almex-net
+    restart: on-failure
     depends_on:
       jaeger-collector:
         condition: service_started
@@ -150,11 +166,55 @@ services:
       retries: 20
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
 
+  # TODO: split this docker-compose file by cases but sharing network.
+  # See https://stackoverflow.com/questions/38088279/communication-between-multiple-docker-compose-projects
+  tempo:
+    image: grafana/tempo:0.6.0
+    container_name: tempo
+    hostname: tempo
+    command: ["--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false"]
+    ports:
+      - 8081:80
+    volumes:
+      - tempo_data:/var/tempo
+    restart: on-failure
+    networks:
+      - almex-net
+
+  loki:
+    image: grafana/loki:2.2.0
+    container_name: loki
+    hostname: loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - almex-net
+    restart: on-failure
+
+  almaraz-example-app:
+    image: almaraz-example:0.2.7
+    container_name: almaraz-example-app
+    hostname: almaraz-example-app
+    ports:
+      - 8080:8080
+      - 8090:8090
+    volumes:
+      - ./agent/opentelemetry-javaagent-all.jar:/agent/otel-agent.jar
+    environment:
+      - "JAVA_OPTS=-javaagent:/agent/otel-agent.jar -Dotel.resource.attributes=service.name=almaraz-example -Dotel.exporter.otlp.endpoint=http://collector:55680 -Dotel.metrics.exporter=none"
+    restart: on-failure
+    depends_on:
+      - elasticsearch
+    networks:
+      - almex-net
+
 volumes:
   esdata:
     driver: local
   prometheus_data: { }
   grafana_data: { }
+  tempo_data: { }
 
 networks:
   almex-net:
