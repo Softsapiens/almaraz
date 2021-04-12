@@ -9,8 +9,26 @@ logging:
   level:
     root: INFO
     com.elevenpaths: DEBUG
-    io.opentelemetry: DEBUG
+    io.opentelemetry: INFO
+    org.springframework.boot.actuate: INFO
+    org.springframework: INFO
 
 almaraz-example:
   base-path: /api
   httpbin-url: http://httpbin.org
+
+management:
+  server:
+    port: 8090
+    ssl:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    probes:
+      enabled: true

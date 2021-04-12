@@ -1,10 +1,10 @@
 # Almaraz example
 
-This is a WebFlux application to demonstrated how to use Almaraz library.
+This is a WebFlux application to demonstrate how to use Almaraz library.
 
 The application was created with Spring Boot wizard. Then, it was added the Almaraz dependency in the pom.xml file.
 
-The applications includes the following classes:
+The application includes the following classes:
 
 | Class | Description |
 | ----- | ----------- |

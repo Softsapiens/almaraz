@@ -65,7 +65,7 @@ services:
         - "9411:9411"
       environment:
         - SPAN_STORAGE_TYPE=elasticsearch
-        - LOG_LEVEL=debug
+        - LOG_LEVEL=info
       restart: on-failure
       depends_on:
         - elasticsearch
@@ -82,7 +82,7 @@ services:
       - "16687"
     environment:
       - SPAN_STORAGE_TYPE=elasticsearch
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
     restart: on-failure
     depends_on:
       - elasticsearch
@@ -99,7 +99,7 @@ services:
       - "6832:6832/udp"
       - "5778:5778"
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
     restart: on-failure
     depends_on:
       - jaeger-collector
