@@ -1,0 +1,25 @@
+= Grafana README
+:toc:
+
+== Datasource Management
+
+=== Export
+
+Exporting command:
+
+`curl -s "http://localhost:3000/api/datasources"  -u admin:123456 | jq -c -M '.[]'|split -l 1 - datasources/`
+
+Importing data:
+
+```
+for i in datasources/*; do \
+    curl -X "POST" "http://localhost:3000/api/datasources" \
+    -H "Content-Type: application/json" \
+     --user admin:123456 \
+     --data-binary @$i
+done
+```
+
+=== References
+
+- https://rmoff.net/2017/08/08/simple-export/import-of-data-sources-in-grafana/
