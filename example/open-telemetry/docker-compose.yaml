@@ -148,6 +148,24 @@ services:
       retries: 20
       test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
 
+  fluent-bit:
+    image: fluent/fluent-bit:1.7.3
+    container_name: fluent-bit
+    hostname: fluent-bit
+    ports:
+      - 24224:24224
+      - 24224:24224/udp
+    volumes:
+      - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      loki:
+        condition: service_started
+    networks:
+      - almex-net
+
   kibana:
     image: docker.elastic.co/kibana/kibana:7.10.0
     container_name: kibana
@@ -187,7 +205,7 @@ services:
     hostname: loki
     command: -config.file=/etc/loki/local-config.yaml
     ports:
-      - "3100:3100"
+      - 3100:3100
     networks:
       - almex-net
     restart: on-failure
@@ -206,8 +224,11 @@ services:
     restart: on-failure
     depends_on:
       - elasticsearch
+      - fluent-bit
     networks:
       - almex-net
+    logging:
+      driver: fluentd
 
 volumes:
   esdata:
