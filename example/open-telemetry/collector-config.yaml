@@ -38,7 +38,7 @@ processors:
 
 exporters:
   logging:
-    logLevel: debug
+    logLevel: info
   elastic:
     apm_server_url: "http://apm-server:8200"
   jaeger:
