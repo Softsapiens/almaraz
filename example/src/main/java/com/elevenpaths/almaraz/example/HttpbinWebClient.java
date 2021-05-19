@@ -50,7 +50,7 @@ public class HttpbinWebClient {
 		return webClient.post()
 			.uri("/post")
 			.contentType(MediaType.APPLICATION_JSON)
-			.body(BodyInserters.fromObject(user))
+			.body(BodyInserters.fromValue(user))
 			.retrieve()
 			.bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {});
 	}
