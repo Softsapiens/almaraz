@@ -63,7 +63,7 @@ Lets go start it using:
 
 ```
 cd ..
-mvn build:image
+mvn spring-boot:build-image
 cd open-telemetry
 docker-compose up almaraz-example-app
 ```
