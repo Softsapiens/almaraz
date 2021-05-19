@@ -28,7 +28,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health, prometheus, info"
   health:
     probes:
       enabled: true
