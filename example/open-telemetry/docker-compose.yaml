@@ -3,7 +3,7 @@ version: '3.0'
 services:
 
   prometheus:
-    image: prom/prometheus:v2.26.0-rc.0
+    image: prom/prometheus:v2.27.0
     container_name: prometheus
     hostname: prometheus
     volumes:
@@ -14,6 +14,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--enable-feature=exemplar-storage'
     ports:
       - 9090:9090
     networks:
@@ -21,7 +22,7 @@ services:
     restart: on-failure
 
   grafana:
-    image: grafana/grafana:7.5.1
+    image: grafana/grafana:7.5.6
     container_name: grafana
     hostname: grafana
     user: "472"
@@ -48,7 +49,6 @@ services:
       - ./alertmanager/:/etc/alertmanager/
     networks:
       - almex-net
-    restart: on-failure
     command:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
@@ -60,7 +60,7 @@ services:
       hostname: jaeger-collector
       ports:
         - "14269"
-        - "14268:14268"
+        #- "14268:14268"
         - "14250"
         - "9411:9411"
       environment:
@@ -117,10 +117,13 @@ services:
       - "13133:13133"
       - "55680:55680"
       - "8888:8888"
+      - "8889:8889"
     networks:
     - almex-net
     restart: on-failure
     depends_on:
+      tempo:
+        condition: service_started
       jaeger-collector:
         condition: service_started
 
@@ -187,15 +190,35 @@ services:
   # TODO: split this docker-compose file by cases but sharing network.
   # See https://stackoverflow.com/questions/38088279/communication-between-multiple-docker-compose-projects
   tempo:
-    image: grafana/tempo:0.6.0
+    image: grafana/tempo:0.7.0
     container_name: tempo
     hostname: tempo
     command: ["--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false"]
     ports:
       - 8081:80
+      #- 14268:14268  # jaeger ingest
+      - 3101:3100   # tempo
+      # - 9411:9411   # zipkin
     volumes:
       - tempo_data:/var/tempo
     restart: on-failure
+    networks:
+      - almex-net
+
+  tempo-query:
+    image: grafana/tempo-query:0.7.0
+    container_name: tempo-query
+    hostname: tempo-query
+    #command: ["--grpc-storage-plugin.configuration-file=/etc/tempo-query.yaml"]
+    environment:
+      - BACKEND=tempo:80
+    volumes:
+      - ./etc/tempo-query.yaml:/etc/tempo-query.yaml
+    ports:
+      - "16688:16686"  # move to 16686 for fully jaeger-ui compat
+    depends_on:
+      - tempo
+      - fluent-bit
     networks:
       - almex-net
 
