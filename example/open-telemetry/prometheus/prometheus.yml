@@ -3,10 +3,3 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets: ['collector:8889']
-      - targets: ['collector:8888']
-  - job_name: 'local-app-actuator'
-    scrape_interval: 5s
-    scrape_timeout: 1s
-    metrics_path: /api/actuator/prometheus
-    static_configs:
-      - targets: [ 'almaraz-example-app:8090' ]

@@ -11,6 +11,11 @@ receivers:
           scrape_interval: 20s
           static_configs:
             - targets: [ '0.0.0.0:8888' ]
+        - job_name: 'almaraz-example'
+          scrape_interval: 5s
+          metrics_path: /api/actuator/prometheus
+          static_configs:
+            - targets: [ 'almaraz-example-app:8090' ]
 
 extensions:
   health_check:
@@ -18,30 +23,45 @@ extensions:
 processors:
   batch:
 
+  # Data sources: traces
+  resource:
+    attributes:
+      - key: traceID-dani
+        value: "fb346ff309a210a1e5ae5c23ba1dfe22"
+        action: upsert
+      - key: trace_id
+        from_attribute: traceID
+        action: insert
+      - key: span_id
+        from_attribute: spanID
+        action: insert
+
 exporters:
   logging:
-    logLevel: info
+    logLevel: debug
   elastic:
     apm_server_url: "http://apm-server:8200"
   jaeger:
     endpoint: jaeger-collector:14250
+    insecure: true
+  otlp:
+    endpoint: tempo:55680
     insecure: true
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
     insecure: true
   prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: almaraz-example
-    const_labels:
-      almaraz: example
+    namespace: almaraz-collector
+    metric_expiration: 180m
 
 service:
   extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [jaeger]
+      processors: [resource]
+      exporters: [jaeger, otlp]
     metrics:
       receivers: [otlp, prometheus ]
-      processors: [batch]
       exporters: [logging, prometheus]
