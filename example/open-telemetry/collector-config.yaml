@@ -11,11 +11,11 @@ receivers:
           scrape_interval: 20s
           static_configs:
             - targets: [ '0.0.0.0:8888' ]
-        - job_name: 'almaraz-example'
-          scrape_interval: 5s
-          metrics_path: /api/actuator/prometheus
-          static_configs:
-            - targets: [ 'almaraz-example-app:8090' ]
+#        - job_name: 'almaraz-example'
+#          scrape_interval: 5s
+#          metrics_path: /api/actuator/prometheus
+#          static_configs:
+#            - targets: [ 'almaraz-example-app:8090' ]
 
 extensions:
   health_check:
@@ -61,7 +61,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [resource]
-      exporters: [jaeger, otlp]
+      exporters: [otlp]
     metrics:
       receivers: [otlp, prometheus ]
       exporters: [logging, prometheus]

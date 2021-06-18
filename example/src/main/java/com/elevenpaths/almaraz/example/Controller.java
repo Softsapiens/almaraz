@@ -29,6 +29,12 @@ import reactor.core.publisher.Mono;
 public class Controller {
 
 	private final HttpbinWebClient httpbinWebClient;
+/*	private static final Meter meter = GlobalMeterProvider
+			.get()
+			.get("io.opentelemetry.metrics", "1.3.0-alpha");*/
+
+	// Graphana query example -> http://localhost:3000/goto/CvafUMlMk
+	//private final BoundDoubleCounter usersCounter;
 
 	/**
 	 * Constructor. It injects the {@link HttpbinWebClient}.
@@ -37,6 +43,14 @@ public class Controller {
 	 */
 	public Controller(HttpbinWebClient httpbinWebClient) {
 		this.httpbinWebClient = httpbinWebClient;
+
+		/*DoubleCounter _counters = meter.doubleCounterBuilder("requests_counters")
+				.setDescription("Counts endpoint's requests")
+				.setUnit("0")
+				.build();
+
+		this.usersCounter = _counters
+				.bind(Labels.of("endpoint", "/users"));*/
 	}
 
 	/**
@@ -51,7 +65,10 @@ public class Controller {
 	 */
 	@PostMapping("/users")
 	public Mono<ResponseEntity<User>> createUser(@ValidRequestBody("user") User user) {
+
 		user.setId(UUID.randomUUID().toString());
+		//this.usersCounter.add(1);
+
 		return Mono.just(ResponseEntity.created(URI.create(user.getId())).body(user));
 	}
 

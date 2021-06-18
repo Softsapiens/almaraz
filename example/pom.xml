@@ -5,21 +5,22 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.3.0.RELEASE</version>
+		<version>2.5.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
 	<groupId>com.elevenpaths.almaraz</groupId>
 	<artifactId>almaraz-example</artifactId>
 	<version>0.2.7</version>
-	<name>almaraz-example</name>
+	<name>almaraz-example-io.micrometer.prometheus</name>
 	<description>Example of a WebFlux server leveraging almaraz</description>
 
 	<properties>
 		<java.version>1.8</java.version>
-		<otel-spring-boot-starters.version>1.0.1-alpha</otel-spring-boot-starters.version>
-		<otel-exporter.version>1.0.1</otel-exporter.version>
-		<prom.version>0.10.0</prom.version>
+		<otel-spring-boot-starters.version>1.2.0-alpha</otel-spring-boot-starters.version>
+		<otel-exporter.version>1.3.0-alpha</otel-exporter.version>
+		<otel.version>1.3.0</otel.version>
+		<prom.version>0.11.0</prom.version>
 		<spring-boot.run.jvmArguments></spring-boot.run.jvmArguments>
 	</properties>
 
@@ -55,7 +56,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
+		<!--<dependency>
 			<groupId>io.opentelemetry.instrumentation</groupId>
 			<artifactId>opentelemetry-spring-boot-autoconfigure</artifactId>
 			<version>${otel-spring-boot-starters.version}</version>
@@ -79,20 +80,36 @@
 			<groupId>io.opentelemetry.instrumentation</groupId>
 			<artifactId>opentelemetry-reactor-3.1</artifactId>
 			<version>${otel-spring-boot-starters.version}</version>
+		</dependency>-->
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-api</artifactId>
+			<version>${otel.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-logging</artifactId>
-			<version>${otel-exporter.version}</version>
+			<artifactId>opentelemetry-sdk</artifactId>
+			<version>${otel.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+			<version>1.8.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>io.prometheus</groupId>
+			<artifactId>simpleclient_common</artifactId>
+			<version>${prom.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-registry-prometheus</artifactId>
-			<scope>runtime</scope>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>RELEASE</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -106,7 +123,7 @@
 					./open-telemetry/agent/opentelemetry-javaagent-all.jar
 					</agents>
 					<jvmArguments>
-						-Dotel.resource.attributes=service.name=almaraz-example
+						-Dotel.resource.attributes=service.name=almaraz-example-prometheus
 						-Dotel.exporter.otlp.endpoint=http://localhost:55680
 						-Dotel.metrics.exporter=none
 

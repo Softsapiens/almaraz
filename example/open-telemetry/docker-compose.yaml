@@ -3,7 +3,7 @@ version: '3.0'
 services:
 
   prometheus:
-    image: prom/prometheus:v2.27.0
+    image: prom/prometheus:v2.27.1
     container_name: prometheus
     hostname: prometheus
     volumes:
@@ -14,7 +14,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--enable-feature=exemplar-storage'
+      - '--enable-feature=exemplar-storage'   # https://vbehar.medium.com/using-prometheus-exemplars-to-jump-from-metrics-to-traces-in-grafana-249e721d4192
     ports:
       - 9090:9090
     networks:
@@ -124,8 +124,6 @@ services:
     depends_on:
       tempo:
         condition: service_started
-      jaeger-collector:
-        condition: service_started
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
@@ -190,15 +188,18 @@ services:
   # TODO: split this docker-compose file by cases but sharing network.
   # See https://stackoverflow.com/questions/38088279/communication-between-multiple-docker-compose-projects
   tempo:
-    image: grafana/tempo:0.7.0
+    image: grafana/tempo:1.0.1
     container_name: tempo
     hostname: tempo
     command: ["--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false"]
     ports:
       - 8081:80
-      #- 14268:14268  # jaeger ingest
+      - 14268:14268  # jaeger ingest
       - 3101:3100   # tempo
       # - 9411:9411   # zipkin
+      - 6831:6831/udp
+      - 6831:6831
+      - 14250:14250
     volumes:
       - tempo_data:/var/tempo
     restart: on-failure
@@ -206,7 +207,7 @@ services:
       - almex-net
 
   tempo-query:
-    image: grafana/tempo-query:0.7.0
+    image: grafana/tempo-query:1.0.1
     container_name: tempo-query
     hostname: tempo-query
     #command: ["--grpc-storage-plugin.configuration-file=/etc/tempo-query.yaml"]
@@ -234,7 +235,7 @@ services:
     restart: on-failure
 
   almaraz-example-app:
-    image: almaraz-example:0.2.7
+    image: docker.io/library/almaraz-example:0.2.7
     container_name: almaraz-example-app
     hostname: almaraz-example-app
     ports:
