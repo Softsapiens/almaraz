@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
+import io.micrometer.core.annotation.Timed;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,12 +30,6 @@ import reactor.core.publisher.Mono;
 public class Controller {
 
 	private final HttpbinWebClient httpbinWebClient;
-/*	private static final Meter meter = GlobalMeterProvider
-			.get()
-			.get("io.opentelemetry.metrics", "1.3.0-alpha");*/
-
-	// Graphana query example -> http://localhost:3000/goto/CvafUMlMk
-	//private final BoundDoubleCounter usersCounter;
 
 	/**
 	 * Constructor. It injects the {@link HttpbinWebClient}.
@@ -43,14 +38,6 @@ public class Controller {
 	 */
 	public Controller(HttpbinWebClient httpbinWebClient) {
 		this.httpbinWebClient = httpbinWebClient;
-
-		/*DoubleCounter _counters = meter.doubleCounterBuilder("requests_counters")
-				.setDescription("Counts endpoint's requests")
-				.setUnit("0")
-				.build();
-
-		this.usersCounter = _counters
-				.bind(Labels.of("endpoint", "/users"));*/
 	}
 
 	/**
@@ -64,10 +51,11 @@ public class Controller {
 	 * @return
 	 */
 	@PostMapping("/users")
+	@Timed(value="my-histogram", histogram = true)
+	@Timed(value="my-counter")
 	public Mono<ResponseEntity<User>> createUser(@ValidRequestBody("user") User user) {
 
 		user.setId(UUID.randomUUID().toString());
-		//this.usersCounter.add(1);
 
 		return Mono.just(ResponseEntity.created(URI.create(user.getId())).body(user));
 	}

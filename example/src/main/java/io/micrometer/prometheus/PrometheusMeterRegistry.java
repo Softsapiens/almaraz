@@ -117,6 +117,9 @@ public class PrometheusMeterRegistry extends MeterRegistry {
      * @since 1.2.0
      */
     public void scrape(Writer writer) throws IOException {
+
+        System.out.println("DANI3: Without Content-type -> defaults to text/plain v0.04");
+
         scrape(writer, TextFormat.CONTENT_TYPE_004);
     }
 
@@ -134,6 +137,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
     }
 
     private void scrape(Writer writer, String contentType, Enumeration<Collector.MetricFamilySamples> samples) throws IOException {
+        System.out.println("DANI2: Content-Type:" + contentType);
+
         TextFormat.writeFormat(contentType, writer, samples);
     }
 
@@ -149,6 +154,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
     public String scrape(String contentType, @Nullable Set<String> includedNames) {
         Writer writer = new StringWriter();
         try {
+            System.out.println("DANI: Content-Type:" + contentType);
+
             scrape(writer, contentType, includedNames);
         } catch (IOException e) {
             // This actually never happens since StringWriter::write() doesn't throw any IOException
