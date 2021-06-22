@@ -186,7 +186,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
         applyToCollector(id, (collector) -> {
             List<String> tagValues = tagValues(id);
             collector.add(tagValues, (conventionName, tagKeys) -> Stream.of(new MicrometerCollector.Family(Collector.Type.COUNTER, conventionName,
-                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, counter.count(), counter.getExemplar()))));
+                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, counter.count(), counter.exemplar()))));
         });
         return counter;
     }

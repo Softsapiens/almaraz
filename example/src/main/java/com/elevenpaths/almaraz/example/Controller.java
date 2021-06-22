@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
+import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +53,7 @@ public class Controller {
 	 */
 	@PostMapping("/users")
 	@Timed(value="my-histogram", histogram = true)
-	@Timed(value="my-counter")
+	@Counted(value="my-counter")
 	public Mono<ResponseEntity<User>> createUser(@ValidRequestBody("user") User user) {
 
 		user.setId(UUID.randomUUID().toString());
