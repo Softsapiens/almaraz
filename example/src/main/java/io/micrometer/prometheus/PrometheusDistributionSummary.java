@@ -20,6 +20,7 @@ import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.distribution.*;
 import io.micrometer.core.instrument.util.MeterEquivalence;
 import io.micrometer.core.lang.Nullable;
+import io.prometheus.client.exemplars.Exemplar;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -66,6 +67,18 @@ public class PrometheusDistributionSummary extends AbstractDistributionSummary {
         } else {
             histogram = null;
         }
+    }
+
+    public Exemplar getBucketExemplar(double bucket) {
+        return null;
+    }
+
+    public Exemplar getCountExemplar() {
+        return null;
+    }
+
+    public Exemplar getSumExemplar() {
+        return null;
     }
 
     @Override

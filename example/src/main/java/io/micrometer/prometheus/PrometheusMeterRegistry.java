@@ -186,7 +186,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
         applyToCollector(id, (collector) -> {
             List<String> tagValues = tagValues(id);
             collector.add(tagValues, (conventionName, tagKeys) -> Stream.of(new MicrometerCollector.Family(Collector.Type.COUNTER, conventionName,
-                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, counter.count(), getTracingExemplar(1)))));
+                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, counter.count(), counter.getExemplar()))));
         });
         return counter;
     }
@@ -212,9 +212,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                         List<String> quantileValues = new LinkedList<>(tagValues);
                         quantileValues.add(Collector.doubleToGoString(v.percentile()));
 
-                        String trace_id = Span.current().getSpanContext().getTraceId();
                         samples.add(new Collector.MetricFamilySamples.Sample(
-                                conventionName, quantileKeys, quantileValues, v.value(), getTracingExemplar(1)));
+                                conventionName, quantileKeys, quantileValues, v.value()));
                     }
                 }
 
@@ -225,7 +224,6 @@ public class PrometheusMeterRegistry extends MeterRegistry {
 
                     List<String> histogramKeys = new LinkedList<>(tagKeys);
                     String sampleName = conventionName + "_bucket";
-                    String trace_id = Span.current().getSpanContext().getTraceId();
                     switch (summary.histogramFlavor()) {
                         case Prometheus:
                             histogramKeys.add("le");
@@ -235,7 +233,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                                 final List<String> histogramValues = new LinkedList<>(tagValues);
                                 histogramValues.add(Collector.doubleToGoString(c.bucket()));
                                 samples.add(new Collector.MetricFamilySamples.Sample(
-                                        sampleName, histogramKeys, histogramValues, c.count(), getTracingExemplar(1)));
+                                        sampleName, histogramKeys, histogramValues, c.count(), summary.getBucketExemplar(c.bucket())));
                             }
 
                             if (Double.isFinite(histogramCounts[histogramCounts.length - 1].bucket())) {
@@ -243,7 +241,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                                 final List<String> histogramValues = new LinkedList<>(tagValues);
                                 histogramValues.add("+Inf");
                                 samples.add(new Collector.MetricFamilySamples.Sample(
-                                        sampleName, histogramKeys, histogramValues, count, getTracingExemplar(1)));
+                                        sampleName, histogramKeys, histogramValues, count));
                             }
                             break;
                         case VictoriaMetrics:
@@ -253,7 +251,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                                 final List<String> histogramValuesVM = new LinkedList<>(tagValues);
                                 histogramValuesVM.add(FixedBoundaryVictoriaMetricsHistogram.getRangeTagValue(c.bucket()));
                                 samples.add(new Collector.MetricFamilySamples.Sample(
-                                        sampleName, histogramKeys, histogramValuesVM, c.count(), getTracingExemplar(1)));
+                                        sampleName, histogramKeys, histogramValuesVM, c.count()));
                             }
                             break;
                         default:
@@ -262,16 +260,15 @@ public class PrometheusMeterRegistry extends MeterRegistry {
 
                 }
 
-                String trace_id = Span.current().getSpanContext().getTraceId();
                 samples.add(new Collector.MetricFamilySamples.Sample(
-                        conventionName + "_count", tagKeys, tagValues, count, new Exemplar(count, "trace_id", trace_id)));
+                        conventionName + "_count", tagKeys, tagValues, count, summary.getCountExemplar()));
 
                 samples.add(new Collector.MetricFamilySamples.Sample(
-                        conventionName + "_sum", tagKeys, tagValues, summary.totalAmount(), getTracingExemplar(1)));
+                        conventionName + "_sum", tagKeys, tagValues, summary.totalAmount(), summary.getSumExemplar()));
 
                 return Stream.of(new MicrometerCollector.Family(type, conventionName, samples.build()),
                         new MicrometerCollector.Family(Collector.Type.GAUGE, conventionName + "_max",
-                                new Collector.MetricFamilySamples.Sample(conventionName + "_max", tagKeys, tagValues, summary.max(), getTracingExemplar(1))));
+                                new Collector.MetricFamilySamples.Sample(conventionName + "_max", tagKeys, tagValues, summary.max())));
             });
         });
         return summary;
@@ -291,9 +288,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
         Gauge gauge = new DefaultGauge<>(id, obj, valueFunction);
         applyToCollector(id, (collector) -> {
             List<String> tagValues = tagValues(id);
-            String trace_id = Span.current().getSpanContext().getTraceId();
             collector.add(tagValues, (conventionName, tagKeys) -> Stream.of(new MicrometerCollector.Family(Collector.Type.GAUGE, conventionName,
-                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, gauge.value(), getTracingExemplar(1)))));
+                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, gauge.value()))));
         });
         return gauge;
     }
@@ -312,8 +308,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
         applyToCollector(id, (collector) -> {
             List<String> tagValues = tagValues(id);
             collector.add(tagValues, (conventionName, tagKeys) -> Stream.of(new MicrometerCollector.Family(Collector.Type.SUMMARY, conventionName,
-                    new Collector.MetricFamilySamples.Sample(conventionName + "_count", tagKeys, tagValues, ft.count(), getTracingExemplar(1)),
-                    new Collector.MetricFamilySamples.Sample(conventionName + "_sum", tagKeys, tagValues, ft.totalTime(TimeUnit.SECONDS), getTracingExemplar(1))
+                    new Collector.MetricFamilySamples.Sample(conventionName + "_count", tagKeys, tagValues, ft.count()),
+                    new Collector.MetricFamilySamples.Sample(conventionName + "_sum", tagKeys, tagValues, ft.totalTime(TimeUnit.SECONDS))
             )));
         });
         return ft;
@@ -324,9 +320,8 @@ public class PrometheusMeterRegistry extends MeterRegistry {
         FunctionCounter fc = new CumulativeFunctionCounter<>(id, obj, countFunction);
         applyToCollector(id, (collector) -> {
             List<String> tagValues = tagValues(id);
-            String trace_id = Span.current().getSpanContext().getTraceId();
             collector.add(tagValues, (conventionName, tagKeys) -> Stream.of(new MicrometerCollector.Family(Collector.Type.COUNTER, conventionName,
-                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, fc.count(), getTracingExemplar(1))
+                    new Collector.MetricFamilySamples.Sample(conventionName, tagKeys, tagValues, fc.count())
             )));
         });
         return fc;
@@ -379,18 +374,12 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                                             break;
                                     }
 
-                                    return new Collector.MetricFamilySamples.Sample(name, statKeys, statValues, m.getValue(), getTracingExemplar(1));
+                                    return new Collector.MetricFamilySamples.Sample(name, statKeys, statValues, m.getValue());
                                 })));
             });
         });
 
         return new DefaultMeter(id, type, measurements);
-    }
-
-    private Exemplar getTracingExemplar(double value) {
-        SpanContext cntxt = Span.current().getSpanContext();
-
-        return (cntxt.isValid()) ? new Exemplar(value, "trace_id", cntxt.getTraceId(), "span_id", cntxt.getSpanId()): null;
     }
 
     @Override
@@ -425,7 +414,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                     quantileValues.add(Collector.doubleToGoString(v.percentile()));
 
                     samples.add(new Collector.MetricFamilySamples.Sample(
-                            conventionName, quantileKeys, quantileValues, v.value(TimeUnit.SECONDS), getTracingExemplar(1)));
+                            conventionName, quantileKeys, quantileValues, v.value(TimeUnit.SECONDS)));
                 }
             }
 
@@ -446,14 +435,14 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                             final List<String> histogramValues = new LinkedList<>(tagValues);
                             histogramValues.add(Collector.doubleToGoString(c.bucket(TimeUnit.SECONDS)));
                             samples.add(new Collector.MetricFamilySamples.Sample(
-                                    sampleName, histogramKeys, histogramValues, c.count(), getTracingExemplar(1)));
+                                    sampleName, histogramKeys, histogramValues, c.count(), (Exemplar)null));
                         }
 
                         // the +Inf bucket should always equal `count`
                         final List<String> histogramValues = new LinkedList<>(tagValues);
                         histogramValues.add("+Inf");
                         samples.add(new Collector.MetricFamilySamples.Sample(
-                                sampleName, histogramKeys, histogramValues, count, getTracingExemplar(1)));
+                                sampleName, histogramKeys, histogramValues, count, (Exemplar)null));
                         break;
                     case VictoriaMetrics:
                         histogramKeys.add("vmrange");
@@ -463,7 +452,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                             histogramValuesVM.add(FixedBoundaryVictoriaMetricsHistogram.getRangeTagValue(c.bucket()));
 
                             samples.add(new Collector.MetricFamilySamples.Sample(
-                                    sampleName, histogramKeys, histogramValuesVM, c.count(), getTracingExemplar(1)));
+                                    sampleName, histogramKeys, histogramValuesVM, c.count()));
                         }
                         break;
                     default:
@@ -473,15 +462,15 @@ public class PrometheusMeterRegistry extends MeterRegistry {
             }
 
             samples.add(new Collector.MetricFamilySamples.Sample(
-                    conventionName + (forLongTaskTimer ? "_active_count" : "_count"), tagKeys, tagValues, count, getTracingExemplar(1)));
+                    conventionName + (forLongTaskTimer ? "_active_count" : "_count"), tagKeys, tagValues, count));
 
             samples.add(new Collector.MetricFamilySamples.Sample(
-                    conventionName + (forLongTaskTimer ? "_duration_sum" : "_sum"), tagKeys, tagValues, histogramSnapshot.total(TimeUnit.SECONDS), getTracingExemplar(1)));
+                    conventionName + (forLongTaskTimer ? "_duration_sum" : "_sum"), tagKeys, tagValues, histogramSnapshot.total(TimeUnit.SECONDS)));
 
             return Stream.of(new MicrometerCollector.Family(type, conventionName, samples.build()),
                     new MicrometerCollector.Family(Collector.Type.GAUGE, conventionName + "_max", Stream.of(
                             new Collector.MetricFamilySamples.Sample(conventionName + "_max", tagKeys, tagValues,
-                                    histogramSnapshot.max(getBaseTimeUnit()), getTracingExemplar(1)))));
+                                    histogramSnapshot.max(getBaseTimeUnit())))));
         });
     }
 

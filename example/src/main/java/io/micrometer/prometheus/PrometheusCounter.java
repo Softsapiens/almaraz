@@ -18,6 +18,7 @@ package io.micrometer.prometheus;
 import io.micrometer.core.instrument.AbstractMeter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.util.MeterEquivalence;
+import io.prometheus.client.exemplars.Exemplar;
 
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -50,5 +51,9 @@ public class PrometheusCounter extends AbstractMeter implements Counter {
     @Override
     public int hashCode() {
         return MeterEquivalence.hashCode(this);
+    }
+
+    public Exemplar getExemplar() {
+        return null;
     }
 }

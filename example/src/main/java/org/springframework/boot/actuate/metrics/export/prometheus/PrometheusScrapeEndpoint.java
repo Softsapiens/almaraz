@@ -22,6 +22,7 @@ import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
 import org.springframework.boot.actuate.metrics.export.prometheus.TextOutputFormat;
 import org.springframework.lang.Nullable;
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -53,9 +54,13 @@ public class PrometheusScrapeEndpoint {
 			Enumeration<MetricFamilySamples> samples = (includedNames != null)
 					? this.collectorRegistry.filteredMetricFamilySamples(includedNames)
 					: this.collectorRegistry.metricFamilySamples();
-			System.out.println("DANI - TextOutputFormat hack");
-			TextOutputFormat.CONTENT_TYPE_OPENMETRICS_100.write(writer, samples);
-//			format.write(writer, samples);
+
+			/*TextOutputFormat oldFormat = format;
+			format =TextOutputFormat.CONTENT_TYPE_OPENMETRICS_100;
+			System.out.println("DANI - TextOutputFormat hacked from " + oldFormat.name() + " to " + format.name() );
+*/
+			format.write(writer, samples);
+
 			return new WebEndpointResponse<>(writer.toString(), format);
 		}
 		catch (IOException ex) {
