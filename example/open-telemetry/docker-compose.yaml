@@ -160,8 +160,6 @@ services:
       - ./fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
       - ./fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf
     depends_on:
-      elasticsearch:
-        condition: service_healthy
       loki:
         condition: service_started
     networks:
@@ -247,7 +245,6 @@ services:
       - "JAVA_OPTS=-javaagent:/agent/otel-agent.jar -Dotel.resource.attributes=service.name=almaraz-example -Dotel.exporter.otlp.endpoint=http://collector:55680 -Dotel.metrics.exporter=none"
     restart: on-failure
     depends_on:
-      - elasticsearch
       - fluent-bit
     networks:
       - almex-net

@@ -24,8 +24,6 @@ import io.micrometer.core.instrument.internal.CumulativeHistogramLongTaskTimer;
 import io.micrometer.core.instrument.internal.DefaultGauge;
 import io.micrometer.core.instrument.internal.DefaultMeter;
 import io.micrometer.core.lang.Nullable;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
 import io.prometheus.client.Collector;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exemplars.Exemplar;
@@ -117,9 +115,6 @@ public class PrometheusMeterRegistry extends MeterRegistry {
      * @since 1.2.0
      */
     public void scrape(Writer writer) throws IOException {
-
-        System.out.println("DANI3: Without Content-type -> defaults to text/plain v0.04");
-
         scrape(writer, TextFormat.CONTENT_TYPE_004);
     }
 
@@ -137,8 +132,6 @@ public class PrometheusMeterRegistry extends MeterRegistry {
     }
 
     private void scrape(Writer writer, String contentType, Enumeration<Collector.MetricFamilySamples> samples) throws IOException {
-        System.out.println("DANI2: Content-Type:" + contentType);
-
         TextFormat.writeFormat(contentType, writer, samples);
     }
 
@@ -154,8 +147,6 @@ public class PrometheusMeterRegistry extends MeterRegistry {
     public String scrape(String contentType, @Nullable Set<String> includedNames) {
         Writer writer = new StringWriter();
         try {
-            System.out.println("DANI: Content-Type:" + contentType);
-
             scrape(writer, contentType, includedNames);
         } catch (IOException e) {
             // This actually never happens since StringWriter::write() doesn't throw any IOException
@@ -261,10 +252,10 @@ public class PrometheusMeterRegistry extends MeterRegistry {
                 }
 
                 samples.add(new Collector.MetricFamilySamples.Sample(
-                        conventionName + "_count", tagKeys, tagValues, count, summary.getCountExemplar()));
+                        conventionName + "_count", tagKeys, tagValues, count));
 
                 samples.add(new Collector.MetricFamilySamples.Sample(
-                        conventionName + "_sum", tagKeys, tagValues, summary.totalAmount(), summary.getSumExemplar()));
+                        conventionName + "_sum", tagKeys, tagValues, summary.totalAmount()));
 
                 return Stream.of(new MicrometerCollector.Family(type, conventionName, samples.build()),
                         new MicrometerCollector.Family(Collector.Type.GAUGE, conventionName + "_max",
@@ -278,7 +269,7 @@ public class PrometheusMeterRegistry extends MeterRegistry {
     protected Timer newTimer(Meter.Id id, DistributionStatisticConfig distributionStatisticConfig, PauseDetector pauseDetector) {
         PrometheusTimer timer = new PrometheusTimer(id, clock, distributionStatisticConfig, pauseDetector, prometheusConfig.histogramFlavor());
         applyToCollector(id, (collector) ->
-                addDistributionStatisticSamples(distributionStatisticConfig, collector, timer, tagValues(id), false));
+                addTimerSamples(distributionStatisticConfig, collector, timer, tagValues(id), false));
         return timer;
     }
 
@@ -400,6 +391,86 @@ public class PrometheusMeterRegistry extends MeterRegistry {
             Stream.Builder<Collector.MetricFamilySamples.Sample> samples = Stream.builder();
 
             HistogramSnapshot histogramSnapshot = histogramSupport.takeSnapshot();
+            ValueAtPercentile[] percentileValues = histogramSnapshot.percentileValues();
+            CountAtBucket[] histogramCounts = histogramSnapshot.histogramCounts();
+            double count = histogramSnapshot.count();
+
+            if (percentileValues.length > 0) {
+                List<String> quantileKeys = new LinkedList<>(tagKeys);
+                quantileKeys.add("quantile");
+
+                // satisfies https://prometheus.io/docs/concepts/metric_types/#summary
+                for (ValueAtPercentile v : percentileValues) {
+                    List<String> quantileValues = new LinkedList<>(tagValues);
+                    quantileValues.add(Collector.doubleToGoString(v.percentile()));
+
+                    samples.add(new Collector.MetricFamilySamples.Sample(
+                            conventionName, quantileKeys, quantileValues, v.value(TimeUnit.SECONDS)));
+                }
+            }
+
+            Collector.Type type = distributionStatisticConfig.isPublishingHistogram() ? Collector.Type.HISTOGRAM : Collector.Type.SUMMARY;
+            if (histogramCounts.length > 0) {
+                // Prometheus doesn't balk at a metric being BOTH a histogram and a summary
+                type = Collector.Type.HISTOGRAM;
+
+                List<String> histogramKeys = new LinkedList<>(tagKeys);
+
+                String sampleName = conventionName + "_bucket";
+                switch (prometheusConfig.histogramFlavor()) {
+                    case Prometheus:
+                        histogramKeys.add("le");
+
+                        // satisfies https://prometheus.io/docs/concepts/metric_types/#histogram
+                        for (CountAtBucket c : histogramCounts) {
+                            final List<String> histogramValues = new LinkedList<>(tagValues);
+                            histogramValues.add(Collector.doubleToGoString(c.bucket(TimeUnit.SECONDS)));
+                            samples.add(new Collector.MetricFamilySamples.Sample(
+                                    sampleName, histogramKeys, histogramValues, c.count(), (Exemplar)null));
+                        }
+
+                        // the +Inf bucket should always equal `count`
+                        final List<String> histogramValues = new LinkedList<>(tagValues);
+                        histogramValues.add("+Inf");
+                        samples.add(new Collector.MetricFamilySamples.Sample(
+                                sampleName, histogramKeys, histogramValues, count, (Exemplar)null));
+                        break;
+                    case VictoriaMetrics:
+                        histogramKeys.add("vmrange");
+
+                        for (CountAtBucket c : histogramCounts) {
+                            final List<String> histogramValuesVM = new LinkedList<>(tagValues);
+                            histogramValuesVM.add(FixedBoundaryVictoriaMetricsHistogram.getRangeTagValue(c.bucket()));
+
+                            samples.add(new Collector.MetricFamilySamples.Sample(
+                                    sampleName, histogramKeys, histogramValuesVM, c.count()));
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+
+            samples.add(new Collector.MetricFamilySamples.Sample(
+                    conventionName + (forLongTaskTimer ? "_active_count" : "_count"), tagKeys, tagValues, count));
+
+            samples.add(new Collector.MetricFamilySamples.Sample(
+                    conventionName + (forLongTaskTimer ? "_duration_sum" : "_sum"), tagKeys, tagValues, histogramSnapshot.total(TimeUnit.SECONDS)));
+
+            return Stream.of(new MicrometerCollector.Family(type, conventionName, samples.build()),
+                    new MicrometerCollector.Family(Collector.Type.GAUGE, conventionName + "_max", Stream.of(
+                            new Collector.MetricFamilySamples.Sample(conventionName + "_max", tagKeys, tagValues,
+                                    histogramSnapshot.max(getBaseTimeUnit())))));
+        });
+    }
+
+    private void addTimerSamples(DistributionStatisticConfig distributionStatisticConfig, MicrometerCollector collector,
+                                 PrometheusTimer timer, List<String> tagValues, boolean forLongTaskTimer) {
+        collector.add(tagValues, (conventionName, tagKeys) -> {
+            Stream.Builder<Collector.MetricFamilySamples.Sample> samples = Stream.builder();
+
+            HistogramSnapshot histogramSnapshot = timer.takeSnapshot();
             ValueAtPercentile[] percentileValues = histogramSnapshot.percentileValues();
             CountAtBucket[] histogramCounts = histogramSnapshot.histogramCounts();
             double count = histogramSnapshot.count();

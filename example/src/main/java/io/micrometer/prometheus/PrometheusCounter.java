@@ -22,6 +22,7 @@ import io.opentelemetry.api.trace.Span;
 import io.prometheus.client.exemplars.CounterExemplarSampler;
 import io.prometheus.client.exemplars.DefaultExemplarSampler;
 import io.prometheus.client.exemplars.Exemplar;
+import io.prometheus.client.exemplars.ExemplarConfig;
 import io.prometheus.client.exemplars.tracer.common.SpanContextSupplier;
 import io.prometheus.client.exemplars.tracer.otel.OpenTelemetrySpanContextSupplier;
 import io.prometheus.client.exemplars.tracer.otel_agent.OpenTelemetryAgentSpanContextSupplier;
@@ -31,24 +32,16 @@ import java.util.concurrent.atomic.DoubleAdder;
 public class PrometheusCounter extends AbstractMeter implements Counter {
     private DoubleAdder count = new DoubleAdder();
     private Exemplar exemplar = null;
-    private DefaultExemplarSampler sampler = null;
 
     PrometheusCounter(Id id) {
         super(id);
-
-        Object spanContextSupplier = findSpanContextSupplier();
-        if (spanContextSupplier != null) {
-            this.sampler = new DefaultExemplarSampler((SpanContextSupplier) spanContextSupplier);
-        }
-
-        System.out.println("[PrometheusCounter] Creating counter with Id " + id + " and sampler: " + this.sampler);
     }
 
     @Override
     public void increment(double amount) {
         if (amount > 0) {
-            if (this.sampler!=null)
-                this.exemplar = this.sampler.sample(amount, this.exemplar);
+            if (ExemplarConfig.isExemplarsEnabled())
+                this.exemplar = ExemplarConfig.getCounterExemplarSampler().sample(amount, this.exemplar);
 
             count.add(amount);
         }

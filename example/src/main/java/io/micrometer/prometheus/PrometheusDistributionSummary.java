@@ -20,7 +20,12 @@ import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.distribution.*;
 import io.micrometer.core.instrument.util.MeterEquivalence;
 import io.micrometer.core.lang.Nullable;
+import io.prometheus.client.exemplars.DefaultExemplarSampler;
 import io.prometheus.client.exemplars.Exemplar;
+import io.prometheus.client.exemplars.ExemplarConfig;
+import io.prometheus.client.exemplars.tracer.common.SpanContextSupplier;
+import io.prometheus.client.exemplars.tracer.otel.OpenTelemetrySpanContextSupplier;
+import io.prometheus.client.exemplars.tracer.otel_agent.OpenTelemetryAgentSpanContextSupplier;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -35,6 +40,10 @@ public class PrometheusDistributionSummary extends AbstractDistributionSummary {
     private final TimeWindowMax max;
 
     private final HistogramFlavor histogramFlavor;
+
+    private Exemplar countExemplar = null;
+    private Exemplar sumExemplar = null;
+    private Exemplar maxExemplar = null;
 
     PrometheusDistributionSummary(Id id, Clock clock, DistributionStatisticConfig distributionStatisticConfig, double scale, HistogramFlavor histogramFlavor) {
         super(id, clock,
@@ -73,12 +82,16 @@ public class PrometheusDistributionSummary extends AbstractDistributionSummary {
         return null;
     }
 
-    public Exemplar getCountExemplar() {
-        return null;
+    public Exemplar countExemplar() {
+        return this.countExemplar;
     }
 
-    public Exemplar getSumExemplar() {
-        return null;
+    public Exemplar sumExemplar() {
+        return this.sumExemplar;
+    }
+
+    public Exemplar maxExemplar() {
+        return this.sumExemplar;
     }
 
     @Override
@@ -87,6 +100,11 @@ public class PrometheusDistributionSummary extends AbstractDistributionSummary {
         this.amount.add(amount);
         max.record(amount);
 
+        if (ExemplarConfig.isExemplarsEnabled()) {
+            this.countExemplar = ExemplarConfig.getHistogramExemplarSampler().sample(1, 0,0, this.countExemplar);
+            this.sumExemplar = ExemplarConfig.getHistogramExemplarSampler().sample(amount, 0, 0, this.sumExemplar);
+            this.maxExemplar = ExemplarConfig.getHistogramExemplarSampler().sample(amount, 0, 0, this.maxExemplar);
+        }
         if (histogram != null)
             histogram.recordDouble(amount);
     }
