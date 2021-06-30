@@ -29,6 +29,7 @@ import io.prometheus.client.exemplars.tracer.otel.OpenTelemetrySpanContextSuppli
 import io.prometheus.client.exemplars.tracer.otel_agent.OpenTelemetryAgentSpanContextSupplier;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -41,7 +42,7 @@ public class PrometheusTimer extends AbstractTimer {
 
     private final HistogramFlavor histogramFlavor;
 
-    private Exemplar countExemplar = null;
+    private final HashMap<Double, Exemplar> exemplars = new HashMap<>();
 
     @Nullable
     private final Histogram histogram;
@@ -93,20 +94,28 @@ public class PrometheusTimer extends AbstractTimer {
                     ExemplarConfig.getHistogramExemplarSampler().sample(Long.valueOf(nanoAmount).doubleValue(), 0, 0, null)
                     :null);
 
+            if (exemplar!=null) {
             /*
             A solution could be to store exemplars by its nanoseconds amount.
             Then inside PrometheusMeterRegistry.addTimerSamples(...) associate each bucket (value) with its nanoAmount-exemplar.
             Remember that this condition (countAtBucket.bucket(TimeUnit.NANOSECONDS)>=nanoAmount) stands to find the first bucket where an exemplar belongs.
              */
-            CountAtBucket[] counts = histogramCounts();
-            System.out.println("Total number of buckets " + counts.length);
-            for (CountAtBucket countAtBucket: counts){
-                if (countAtBucket.bucket(TimeUnit.NANOSECONDS)>=nanoAmount)
-                    System.out.println(countAtBucket + " having exemplar " + (exemplar!=null?exemplar.getValue():null));
+                CountAtBucket[] counts = histogramCounts();
+                System.out.println("Total number of buckets " + counts.length);
+                for (CountAtBucket countAtBucket : counts) {
+                    if (countAtBucket.bucket(TimeUnit.NANOSECONDS) >= nanoAmount) {
+                        this.exemplars.put(countAtBucket.bucket(TimeUnit.NANOSECONDS), exemplar);
+                        System.out.println(countAtBucket + " having exemplar " + exemplar.getValue());
+                    }
+                }
             }
         }
 
         System.out.println("[PrometheusTimer][" + this.getId() + "] recording non negative value with exemplars");
+    }
+
+    public Exemplar getExemplar(Double value) {
+        return this.exemplars.get(value);
     }
 
     @Override
