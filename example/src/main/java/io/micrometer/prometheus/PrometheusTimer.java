@@ -87,7 +87,7 @@ public class PrometheusTimer extends AbstractTimer {
         totalTime.add(nanoAmount);
         max.record(nanoAmount, TimeUnit.NANOSECONDS);
 
-        if (histogram != null) {
+        if (histogram != null && histogramFlavor==HistogramFlavor.Prometheus) {
             histogram.recordLong(TimeUnit.NANOSECONDS.convert(amount, unit));
 
             Exemplar exemplar = (ExemplarConfig.isExemplarsEnabled() ?
@@ -95,23 +95,15 @@ public class PrometheusTimer extends AbstractTimer {
                     :null);
 
             if (exemplar!=null) {
-            /*
-            A solution could be to store exemplars by its nanoseconds amount.
-            Then inside PrometheusMeterRegistry.addTimerSamples(...) associate each bucket (value) with its nanoAmount-exemplar.
-            Remember that this condition (countAtBucket.bucket(TimeUnit.NANOSECONDS)>=nanoAmount) stands to find the first bucket where an exemplar belongs.
-             */
                 CountAtBucket[] counts = histogramCounts();
-                System.out.println("Total number of buckets " + counts.length);
                 for (CountAtBucket countAtBucket : counts) {
+                    // Logic validated with the one showed in class TimeWindowFixedBoundaryHistogram.FixedBoundaryHistogram
                     if (countAtBucket.bucket(TimeUnit.NANOSECONDS) >= nanoAmount) {
                         this.exemplars.put(countAtBucket.bucket(TimeUnit.NANOSECONDS), exemplar);
-                        System.out.println(countAtBucket + " having exemplar " + exemplar.getValue());
                     }
                 }
             }
         }
-
-        System.out.println("[PrometheusTimer][" + this.getId() + "] recording non negative value with exemplars");
     }
 
     public Exemplar getExemplar(Double value) {
